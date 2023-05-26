@@ -212,6 +212,68 @@ instance (Uniform a, Uniform b) => Uniform (Either a b) where
            then first Left_  (uniform s1)
            else first Right_ (uniform s1)
 
+-- | The class of types for which we can generate random variates
+-- uniformly on a given range [a,b].
+class Elt a => UniformR a where
+  uniformRange :: Exp (a, a) -> Exp SFC64 -> Exp (a, SFC64)
+
+instance UniformR Float where
+  uniformRange p s =
+    let (l, h) = unlift p :: (Exp Float, Exp Float)
+        uni = uniform s :: Exp (Float, SFC64)
+        x = A.fst uni :: Exp Float
+    in A.lift (x * l + (1 - x) * h, A.snd uni)
+
+instance UniformR Double where
+  uniformRange p s =
+    let (l, h) = unlift p :: (Exp Double, Exp Double)
+        uni = uniform s :: Exp (Double, SFC64)
+        x = A.fst uni :: Exp Double
+    in A.lift (x * l + (1 - x) * h, A.snd uni)
+
+
+-- | Generate vectors filled with uniform random variates within a range [a,b]
+randomRVector :: (UniformR a, Monad m) => Exp (a, a) -> RandomT m (Acc Gen) (Acc (Vector a))
+randomRVector b = RandomT . StateT $ \s ->
+  let (r, s') = A.unzip $ A.map (uniformRange b) s
+   in return (r, s')
+
+-- | The class of types for which we can generate normal random variates
+-- with a given mean and std. 
+class Uniform a => Normal a where
+    normal :: Exp a -> Exp a -> Exp SFC64 -> Exp (a, SFC64)
+
+instance Normal Double where
+    normal m sd s = 
+      let (x, g1) = unlift $ uniform s :: (Exp Double, Exp SFC64)
+          (u2, g2) = unlift $ uniform g1 :: (Exp Double, Exp SFC64)
+
+          u1 = A.max (2 A.^(-63 :: Exp Int)) x 
+
+          -- Box-Muller transformation: z = N(0,1)
+          z = A.sqrt (-2 * A.log u1) * A.cos (2 * A.pi * u2)
+          -- z*sd + m = N(m,sd)
+        in A.lift (z * sd + m, g2)
+
+instance Normal Float where
+    normal m sd s = 
+      let (x, g1) = unlift $ uniform s :: (Exp Float, Exp SFC64)
+          (u2, g2) = unlift $ uniform g1 :: (Exp Float, Exp SFC64)
+
+          u1 = A.max (2 A.^(-31 :: Exp Int)) x 
+
+          -- Box-Muller transformation: z = N(0,1)
+          z = A.sqrt (-2 * A.log u1) * A.cos (2 * A.pi * u2)
+          -- z*sd + m = N(m,sd)
+        in A.lift (z * sd + m, g2)
+
+-- | Generate vectors filled with normal random variates with a given mean
+-- and std.
+randomNVector :: (Normal a, Monad m) => Exp a -> Exp a -> RandomT m (Acc Gen) (Acc (Vector a))
+randomNVector m sd = RandomT . StateT $ \s ->
+  let (r, s') = A.unzip $ A.map (normal m sd) s
+   in return (r, s')
+
 
 runQ $ do
   let
