@@ -147,7 +147,7 @@ seed a b c
 -- determined by the generator state that was built using 'create' or
 -- 'createWith'.
 --
-randomVector :: (Uniform a, Monad m) => RandomT m (Acc (Vector a))
+randomVector :: (Uniform a, Monad m) => RandomT m (Acc Gen) (Acc (Vector a))
 randomVector = RandomT . StateT $ \s ->
   let (r, s') = A.unzip $ A.map uniform s
    in return (r, Gen s')
