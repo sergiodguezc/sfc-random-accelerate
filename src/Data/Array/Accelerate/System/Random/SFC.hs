@@ -29,12 +29,7 @@ module Data.Array.Accelerate.System.Random.SFC (
   create, createWith,
   randomVector,
 
-  randomNVector,
-  randomRVector,
-
   Uniform(..),
-  UniformR(..),
-  Normal(..),
   SFC64,
 
 ) where
