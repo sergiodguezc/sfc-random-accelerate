@@ -120,7 +120,7 @@ create sh =
   let n   = shapeSize sh
       gen = generate (I1 n) (\(I1 i) -> seed_fast (A.fromIntegral i))
   in
-  Gen gen
+  gen
 
 seed_fast :: Exp Word64 -> Exp SFC64
 seed_fast s
@@ -133,7 +133,7 @@ seed_fast s
 -- | Create a new generator state using the given seed vector
 --
 createWith :: Acc (Vector (Word64, Word64, Word64)) -> Acc Gen
-createWith = Gen . A.map (\(T3 a b c) -> seed a b c)
+createWith = A.map (\(T3 a b c) -> seed a b c)
 
 seed :: Exp Word64 -> Exp Word64 -> Exp Word64 -> Exp SFC64
 seed a b c
