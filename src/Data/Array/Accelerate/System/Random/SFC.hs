@@ -150,7 +150,7 @@ seed a b c
 randomVector :: (Uniform a, Monad m) => RandomT m (Acc Gen) (Acc (Vector a))
 randomVector = RandomT . StateT $ \s ->
   let (r, s') = A.unzip $ A.map uniform s
-   in return (r, Gen s')
+   in return (r, s')
 
 
 first :: (Elt a, Elt b, Elt c) => (Exp a -> Exp b) -> Exp (a, c) -> Exp (b, c)
