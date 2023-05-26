@@ -148,7 +148,7 @@ seed a b c
 -- 'createWith'.
 --
 randomVector :: (Uniform a, Monad m) => RandomT m (Acc (Vector a))
-randomVector = RandomT . StateT $ \(Gen s) ->
+randomRVector = RandomT . StateT $ \s ->
   let (r, s') = A.unzip $ A.map uniform s
    in return (r, Gen s')
 
