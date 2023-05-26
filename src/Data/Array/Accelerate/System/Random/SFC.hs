@@ -29,7 +29,12 @@ module Data.Array.Accelerate.System.Random.SFC (
   create, createWith,
   randomVector,
 
+  randomNVector,
+  randomRVector,
+
   Uniform(..),
+  UniformR(..),
+  Normal(..),
   SFC64,
 
 ) where
@@ -45,34 +50,35 @@ import Language.Haskell.TH                                          hiding ( Exp
 import Prelude                                                      as P
 
 
+-- | The following changes are stolen from:
+-- github: robbert-vdh/sfc-random-accelerate
+-- commit: 7afd79c
+--
+-- The following changes allows us to generate random numbers
+-- within Exp.
+
 type Random = RandomT Identity
 
-newtype RandomT m a = RandomT { runRandomT :: StateT (Acc Gen) m a }
+newtype RandomT m t a = RandomT { runRandomT :: StateT t m a }
   deriving newtype (Functor, Applicative, Monad)
 
 -- | Unwrap a random monad computation as a function
 --
-runRandom :: Acc Gen -> Random a -> (a, Acc Gen)
+runRandom :: t -> Random t a -> (a, t)
 runRandom gen r = runIdentity $ runStateT (runRandomT r) gen
 
 -- | Evaluate a computation given the initial generator state and return
 -- the final value, discarding the final state.
 --
-evalRandom :: Acc Gen -> Random a -> a
+evalRandom :: t -> Random t a -> a
 evalRandom gen = runIdentity . evalRandomT gen
 
 -- | Evaluate a computation with the given initial generator state and
 -- return the final value, discarding the final state.
 --
-evalRandomT :: Monad m => Acc Gen -> RandomT m a -> m a
+evalRandomT :: Monad m => t -> RandomT m t a -> m a
 evalRandomT gen r = evalStateT (runRandomT r) gen
 
-
-data Gen = Gen_ (Vector SFC64)
-  deriving (Generic, Arrays)
-
-pattern Gen :: Acc (Vector SFC64) -> Acc Gen
-pattern Gen s = Pattern s
 
 data SFC a = SFC64_ a a a a
   deriving (Generic, Elt)
@@ -82,6 +88,9 @@ pattern SFC a b c counter = Pattern (a, b, c, counter)
 {-# COMPLETE SFC #-}
 
 type SFC64 = SFC Word64
+
+-- | Vector representation to provide access to Exp SFC64
+type Gen = Vector SFC64
 
 -- | The Small Fast Carry RNG (64-bit)
 --
@@ -202,6 +211,7 @@ instance (Uniform a, Uniform b) => Uniform (Either a b) where
      in if c
            then first Left_  (uniform s1)
            else first Right_ (uniform s1)
+
 
 runQ $ do
   let
